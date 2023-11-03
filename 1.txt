@@ -1,0 +1,657 @@
+(bài chống cháy qua môn)
+Sinh viên(thuvien):
+
+
+namespace Thuvien
+{
+    public class User
+    {
+        public string HoTen { get; set; }
+        public string NgaySinh { get; set; }
+        public int MaSo { get; set; }
+        public string SoDT { get; set; }
+        public int size;
+
+        public User() { }
+
+        public User(byte [] data)
+        {
+            int place = 0;
+
+            int hoTenSize = BitConverter.ToInt32(data, place);
+            place += 4;
+            HoTen = Encoding.UTF8.GetString(data, place, hoTenSize);
+            place += hoTenSize;
+
+            int ngaySinhSize = BitConverter.ToInt32(data, place);
+            place += 4;
+            NgaySinh = Encoding.ASCII.GetString(data, place, ngaySinhSize);
+            place += ngaySinhSize;
+
+            MaSo = BitConverter.ToInt32(data, place);
+            place += 4;
+
+            int soDTSize = BitConverter.ToInt32(data, place);
+            place += 4;
+            SoDT = Encoding.ASCII.GetString(data, place, soDTSize);
+            place += soDTSize;
+        }
+
+        public byte[] GetBytes()
+        {
+            byte[] data = new byte[1024];
+            int place = 0;
+            //Gui kich thuoc cua chuoi truoc roi moi gui noi dung
+            Buffer.BlockCopy(BitConverter.GetBytes(HoTen.Length),0,data,place,4);
+            place += 4;
+            Buffer.BlockCopy(Encoding.UTF8.GetBytes(HoTen), 0, data, place, HoTen.Length);//UTF8 co ho tro tieng viet
+            place += HoTen.Length;
+
+            Buffer.BlockCopy(BitConverter.GetBytes(NgaySinh.Length), 0, data, place, 4);
+            place += 4;
+            Buffer.BlockCopy(Encoding.ASCII.GetBytes(NgaySinh), 0, data, place, NgaySinh.Length);
+            place += NgaySinh.Length;
+
+            Buffer.BlockCopy(BitConverter.GetBytes(MaSo), 0, data, place, 4);
+            place += 4;
+
+            Buffer.BlockCopy(BitConverter.GetBytes(SoDT.Length),0,data,place,4);
+            place += 4;
+            Buffer.BlockCopy(Encoding.ASCII.GetBytes(SoDT), 0, data, place, SoDT.Length);
+            place += SoDT.Length;
+
+            size = place;
+            return data;
+        }
+
+        public void NhapTuBanPhim()
+        {
+            Console.Write("Nhap ho ten: ");
+            HoTen = Console.ReadLine();
+            Console.Write("Nhap ngay sinh: ");
+            NgaySinh = Console.ReadLine();
+            Console.Write("Nhap ma so: ");
+            MaSo = int.Parse(Console.ReadLine());
+            Console.Write("Nhap so dien thoai: ");
+            SoDT = Console.ReadLine();
+        }
+        public override string ToString()
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine(string.Format("Ho va ten = {0} ", HoTen));
+            sb.AppendLine(string.Format("ngay sinh = {0}", NgaySinh));
+            sb.AppendLine(string.Format("Ma so = {0}",MaSo));
+            sb.AppendLine(string.Format("So dien thoai = {0}",SoDT));
+            return sb.ToString();
+        }
+    }
+    
+}
+
+
+
+Server:
+using System.Net.Sockets;
+using System.Net;
+
+namespace Server
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+
+            byte[] data = new byte[1024];
+            TcpListener server = new TcpListener(IPAddress.Any, 9050);
+            server.Start();
+            TcpClient client = server.AcceptTcpClient();
+            NetworkStream ns = client.GetStream();
+
+            byte[] size = new byte[2];
+            int recv = ns.Read(size, 0, 2);
+            int packsize = BitConverter.ToInt16(size, 0);
+            Console.WriteLine("Kich thuoc goi tin = {0}", packsize);
+            recv = ns.Read(data, 0, packsize);
+            Thuvien.User user1 = new Thuvien.User(data);
+            Console.WriteLine(user1);
+
+            ns.Close();
+            client.Close();
+            server.Stop();
+
+            Console.ReadKey();
+            
+        }
+    }
+}
+
+
+
+
+Client:
+using System.Net.Sockets;
+using System.Net;
+
+using Thuvien;( chuột phải client/server Add reference chọn project rồi chọn thư viện)
+
+namespace Client
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            Thuvien.User user1 = new Thuvien.User();
+            user1.NhapTuBanPhim();
+            TcpClient client;
+            try
+            {
+                client = new TcpClient("127.0.0.1", 9050);
+            }
+            catch(SocketException)
+            {
+                Console.WriteLine("Khong ket noi duoc voi Server");
+                return;
+            }
+            NetworkStream ns = client.GetStream();
+            byte[] data = user1.GetBytes();
+            int size = user1.size;
+            byte[] packsize = new byte[2];
+            Console.WriteLine("Kich thuoc goi tin = {0}", size);
+            packsize = BitConverter.GetBytes(size);
+            ns.Write(packsize, 0, 2);
+            ns.Write(data, 0, size);
+            ns.Flush();
+
+            ns.Close();
+            client.Close();
+
+            Console.ReadKey();
+        }
+    }
+}
+
+Bài nạp vip premier
+Sever(employee):
+
+namespace Tcp_Server
+{
+    internal class Employee
+    {
+        public int EmployeeID;
+        public string LastName;
+        private int LastNameSize;
+        public string FirstName;
+        private int FirstNameSize;
+        public int YearService;
+        public double Salary;
+        public int size;
+        public byte[] GetByetes()
+        {
+            byte[] data = new byte[1024];
+            int place = 0;
+            Buffer.BlockCopy(BitConverter.GetBytes(EmployeeID), 0, data, place, 4);
+            place += 4;
+
+            Buffer.BlockCopy(BitConverter.GetBytes(LastName.Length), 0, data, place, 4);
+            place += 4;
+            Buffer.BlockCopy(Encoding.ASCII.GetBytes(LastName), 0, data, place, LastName.Length);
+            place += LastName.Length;
+
+            Buffer.BlockCopy(BitConverter.GetBytes(FirstName.Length), 0, data, place, 4);
+            place += 4;
+            Buffer.BlockCopy(Encoding.ASCII.GetBytes(FirstName), 0, data, place, FirstName.Length);
+            place += FirstName.Length;
+
+            Buffer.BlockCopy(BitConverter.GetBytes(YearService), 0, data, place, 4);
+            place += 4;
+            Buffer.BlockCopy(BitConverter.GetBytes(Salary), 0, data, place, 8);
+            place += 8;
+            size = place;
+            return data;
+        }
+        public Employee()
+        {
+
+        }
+        public Employee(byte[] data)
+        {
+            int place = 0;
+            EmployeeID = BitConverter.ToInt32(data, place);
+            place += 4;
+            LastNameSize = BitConverter.ToInt32(data, place);
+            place += 4;
+            LastName = Encoding.ASCII.GetString(data, place, LastNameSize);
+            place += LastNameSize;
+
+            FirstNameSize = BitConverter.ToInt32(data, place);
+            place += 4;
+            FirstName = Encoding.ASCII.GetString(data, place, FirstNameSize);
+            place += FirstNameSize;
+            YearService = BitConverter.ToInt32(data, place);
+            place += 4;
+            Salary = BitConverter.ToDouble(data, place);
+        }
+    }
+}
+
+Sever(Program):
+using System;
+using System.Net.Sockets;
+using System.Net;
+using System.IO;
+
+namespace Tcp_Server
+{
+    internal class Program
+    {
+        static void Main(string[] args)
+        {
+            byte[] data = new byte[1024];
+            TcpListener server = new TcpListener(IPAddress.Any, 9050);
+            server.Start();
+            TcpClient client = server.AcceptTcpClient();
+            NetworkStream ns = client.GetStream();
+
+            while (true)
+            {
+                byte[] size = new byte[2];
+                try
+                {
+                    int recv = ns.Read(size, 0, 2);
+                    int packsize = BitConverter.ToInt16(size, 0);
+                    Console.WriteLine("Packet Size = {0}", packsize);
+                    recv = ns.Read(data, 0, packsize);
+                }
+                catch (Exception)
+                {
+                    Console.WriteLine("Client disconnect");
+                    break;
+                }
+
+                Employee employee = new Employee(data);
+                Console.WriteLine("ID = {0}", employee.EmployeeID);
+                Console.WriteLine("LastName = {0}", employee.LastName);
+                Console.WriteLine("FirstName = {0}", employee.FirstName);
+                Console.WriteLine("YearService = {0}", employee.YearService);
+                Console.WriteLine("Salary = {0}", employee.Salary);
+                Console.WriteLine();
+
+                string FileName = "../../../List.txt";
+
+                using (StreamWriter sw = new StreamWriter(FileName, true))
+                {
+                    sw.WriteLine("ID = {0}", employee.EmployeeID);
+                    sw.WriteLine("LastName = {0}", employee.LastName);
+                    sw.WriteLine("FirstName = {0}", employee.FirstName);
+                    sw.WriteLine("YearService = {0}", employee.YearService);
+                    sw.WriteLine("Salary = {0}", employee.Salary);
+                    sw.WriteLine();
+                }
+            }
+
+            ns.Close();
+            client.Close();
+            server.Stop();
+            Console.ReadKey();
+        }
+    }
+}
+
+Client(employee):
+namespace Tcp_Client
+{
+    internal class Employee
+    {
+        public int EmployeeID;
+        public string LastName;
+        private int LastNameSize;
+        public string FirstName;
+        private int FirstNameSize;
+        public int YearService;
+        public double Salary;
+        public int size;
+        public byte[] GetByetes()
+        {
+            byte[] data = new byte[1024];
+            int place = 0;
+            Buffer.BlockCopy(BitConverter.GetBytes(EmployeeID), 0, data, place, 4);
+            place += 4;
+
+            Buffer.BlockCopy(BitConverter.GetBytes(LastName.Length), 0, data, place, 4);
+            place += 4;
+            Buffer.BlockCopy(Encoding.ASCII.GetBytes(LastName), 0, data, place, LastName.Length);
+            place += LastName.Length;
+
+            Buffer.BlockCopy(BitConverter.GetBytes(FirstName.Length), 0, data, place, 4);
+            place += 4;
+            Buffer.BlockCopy(Encoding.ASCII.GetBytes(FirstName), 0, data, place, FirstName.Length);
+            place += FirstName.Length;
+
+            Buffer.BlockCopy(BitConverter.GetBytes(YearService), 0, data, place, 4);
+            place += 4;
+            Buffer.BlockCopy(BitConverter.GetBytes(Salary), 0, data, place, 8);
+            place += 8;
+            size = place;
+            return data;
+        }
+        public Employee()
+        {
+
+        }
+        public Employee(byte[] data)
+        {
+            int place = 0;
+            EmployeeID = BitConverter.ToInt32(data, place);
+            place += 4;
+            LastNameSize = BitConverter.ToInt32(data, place);
+            place += 4;
+            LastName = Encoding.ASCII.GetString(data, place, LastNameSize);
+            place += LastNameSize;
+
+            FirstNameSize = BitConverter.ToInt32(data, place);
+            place += 4;
+            FirstName = Encoding.ASCII.GetString(data, place, FirstNameSize);
+            place += FirstNameSize;
+            YearService = BitConverter.ToInt32(data, place);
+            place += 4;
+            Salary = BitConverter.ToDouble(data, place);
+        }
+    }
+}
+
+Client(program):
+using System.Net.Sockets;
+using System.Net;
+
+namespace Tcp_Client
+{
+    internal class Program
+    {
+        static void Main(string[] args)
+        {
+            TcpClient client;
+            try
+            {
+                client = new TcpClient("127.0.0.1", 9050);
+            }
+
+            catch (Exception)
+            {
+                Console.WriteLine("Can not connect to server");
+                return;
+            }
+            NetworkStream ns = client.GetStream();
+            while (true)
+            {
+                Employee employee = new Employee();
+                Console.WriteLine("Input ID: ");
+                employee.EmployeeID = int.Parse(Console.ReadLine());
+                Console.WriteLine("Input LastName: ");
+                employee.LastName = Console.ReadLine();
+                Console.WriteLine("Input FirstName: ");
+                employee.FirstName = Console.ReadLine();
+                Console.WriteLine("Input YearService: ");
+                employee.YearService = int.Parse(Console.ReadLine());
+                Console.WriteLine("Input Salary: ");
+                employee.Salary = double.Parse(Console.ReadLine());
+
+                byte[] data = employee.GetByetes();
+                int size = employee.size;
+                byte[] packsize = BitConverter.GetBytes(size);
+                Console.WriteLine("Packet Size = {0}", size);
+                ns.Write(packsize, 0, 2);
+                ns.Write(data, 0, size);
+                Console.WriteLine("Do you want to continue? (Yes/No)");
+                if (Console.ReadLine().Trim().ToLower() == "no")
+                {
+                    break;
+                }
+            }
+        }
+    }
+}
+
+Udp:
+EmployeeModel.cs:
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Employee
+{
+    public class EmployeeModel
+    {
+		private int lastNameSize;
+		private string lastName;
+		private int firstNameSize;
+		private string firstName;
+
+		public int EmployeeID { get; set; }
+		public string LastName
+		{
+			get => lastName;
+			set
+			{
+				lastName = value;
+				lastNameSize = lastName.Length;
+			}
+		}
+		public string FirstName
+		{
+			get => firstName;
+			set
+			{
+				firstName = value;
+				firstNameSize = firstName.Length;
+			}
+		}
+		public int YearService { get; set; }
+		public double Salary { get; set; }
+		public int Size { get; set; }
+
+		public EmployeeModel()
+		{
+		}
+
+		public EmployeeModel(byte[] data)
+		{
+			int place = 0;
+			// For ID
+			EmployeeID = BitConverter.ToInt32(data, place);
+			place += 4;
+			// For last name
+			lastNameSize = BitConverter.ToInt32(data, place);
+			place += 4;
+			LastName = Encoding.ASCII.GetString(data, place, lastNameSize);
+			place += lastNameSize;
+			// For first name
+			firstNameSize = BitConverter.ToInt32(data, place);
+			place += 4;
+			FirstName = Encoding.ASCII.GetString(data, place, firstNameSize);
+			place += firstNameSize;
+			// For year
+			YearService = BitConverter.ToInt32(data, place);
+			place += 4;
+			// For salary
+			Salary = BitConverter.ToDouble(data, place);
+			place += 8;
+			Size = place;
+		}
+
+		public EmployeeModel(int employeeID, string lastName, string firstName, int yearService, double salary)
+		{
+			EmployeeID = employeeID;
+			LastName = lastName;
+			FirstName = firstName;
+			YearService = yearService;
+			Salary = salary;
+		}
+
+		/// <summary>
+		/// Transform an object to array of bytes
+		/// </summary>
+		/// <returns></returns>
+		public byte[] GetBytes()
+		{
+			byte[] data = new byte[1024];
+			int place = 0;
+			// For ID
+			Buffer.BlockCopy(BitConverter.GetBytes(EmployeeID), 0, data, place, 4);
+			place += 4;
+			// For last name
+			Buffer.BlockCopy(BitConverter.GetBytes(lastNameSize), 0, data, place, 4);
+			place += 4;
+			Buffer.BlockCopy(Encoding.ASCII.GetBytes(LastName), 0, data, place, lastNameSize);
+			place += lastNameSize;
+			// For first name
+			Buffer.BlockCopy(BitConverter.GetBytes(firstNameSize), 0, data, place, 4);
+			place += 4;
+			Buffer.BlockCopy(Encoding.ASCII.GetBytes(FirstName), 0, data, place, firstNameSize);
+			place += firstNameSize;
+			// For year
+			Buffer.BlockCopy(BitConverter.GetBytes(YearService), 0, data, place, 4);
+			place += 4;
+			// For salary
+			Buffer.BlockCopy(BitConverter.GetBytes(Salary), 0, data, place, 8);
+			place += 8;
+			Size = place;
+			return data;
+		}
+
+		public void ImportEmployee()
+		{
+			Console.Write("Employee ID: ");
+			EmployeeID = Int32.Parse(Console.ReadLine());
+			Console.Write("Last name: ");
+			LastName = Console.ReadLine();
+			Console.Write("First name: ");
+			FirstName = Console.ReadLine();
+			Console.Write("Year service: ");
+			YearService = Int32.Parse(Console.ReadLine());
+			Console.Write("Salary: ");
+			Salary = Double.Parse(Console.ReadLine());
+		}
+
+		public override string ToString()
+		{
+			StringBuilder builder = new StringBuilder();
+			builder.AppendLine(String.Format("ID: {0}", EmployeeID));
+			builder.AppendLine(String.Format("Last name: {0}", LastName));
+			builder.AppendLine(String.Format("First name: {0}", FirstName));
+			builder.AppendLine(String.Format("Year service: {0}", YearService));
+			builder.AppendLine(String.Format("Salary: {0}", Salary));
+			return builder.ToString();
+		}
+
+		public void WriteToFile(string path)
+		{
+			using (var write = File.AppendText(path))
+			{
+				write.Write(this.ToString());
+			}
+		}
+	}
+}
+
+Client:
+using Employee;
+using System;
+using System.Net;
+using System.Net.Sockets;
+
+namespace UDPClient
+{
+    internal class Program
+    {
+        static void Main(string[] args)
+        {
+            UdpClient client = new UdpClient();
+            try
+            {
+                client.Connect("127.0.0.1", 11000);
+                byte[] data;
+                EmployeeModel employee;
+
+                IPEndPoint remote = new IPEndPoint(IPAddress.Any, 0);
+
+                while (true)
+                {
+                    employee = new EmployeeModel();
+
+                    employee.ImportEmployee();
+                    data = employee.GetBytes();
+
+                    int size = employee.Size;
+                    byte[] packageSize = new byte[2];
+                    Console.WriteLine("Size of package = {0}", size);
+
+                    packageSize = BitConverter.GetBytes(size);
+                    client.Send(packageSize, packageSize.Length);
+
+                    client.Send(data, size);
+
+                    Console.WriteLine("Do you want to continue? Type 'exit' to exit!!");
+                    string answer = Console.ReadLine();
+                    if(answer.Equals("exit", StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        packageSize = BitConverter.GetBytes(0);
+                        client.Send(packageSize, 0);
+                        break;
+                    }
+                }
+                client.Close();
+            }catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+    }
+}
+
+Server:
+using Employee;
+using System;
+using System.Net;
+using System.Net.Sockets;
+
+namespace UDPServer
+{
+    internal class Program
+    {
+        static void Main(string[] args)
+        {
+            byte[] data;
+            byte[] size = new byte[2];
+            UdpClient client = new UdpClient(11000);
+            IPEndPoint remote = new IPEndPoint(IPAddress.Any, 0);
+
+            Console.WriteLine("Waiting for a connection...");
+
+            while (true)
+            {
+                data = new byte[1024];
+                size = client.Receive(ref remote);
+                if (size.Length == 0)
+                    break;
+
+                Console.WriteLine("Connected successfully");
+                Console.WriteLine("Host info: " + remote);
+
+                int packageSize = BitConverter.ToInt16(size, 0);
+                Console.WriteLine("The size of package: {0}", packageSize);
+
+                data = client.Receive(ref remote);
+                EmployeeModel employee = new EmployeeModel(data);
+                Console.WriteLine(employee.ToString());
+            }
+            client.Close();
+            Console.ReadKey();
+        }
+    }
+}
+
+
+
